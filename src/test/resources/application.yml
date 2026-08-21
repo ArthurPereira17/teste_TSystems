@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: international-order-service
+
+pricing:
+  api:
+    url: http://localhost:8090
+    connect-timeout-ms: 500
+    read-timeout-ms: 500
+  retry:
+    # Long enough that the background scheduler never fires during a test run, so test
+    # assertions about pricingAttempts are deterministic and only reflect explicit calls
+    # (create / retryPricingNow), not a race with the real background job.
+    scheduler-interval-ms: 3600000
+    max-attempts: 5
+    initial-backoff-ms: 5000
+    max-backoff-ms: 60000

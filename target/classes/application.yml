@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: international-order-service
+server:
+  port: 8080
+
+pricing:
+  api:
+    url: ${PRICING_API_URL:http://localhost:8090}
+    connect-timeout-ms: 2000
+    read-timeout-ms: 3000
+  retry:
+    # How often the background job scans for PENDING_PRICING orders whose backoff has elapsed.
+    scheduler-interval-ms: 5000
+    # Automatic attempts before an order is marked PRICING_FAILED (needs attention).
+    # The first synchronous attempt on creation counts as attempt #1.
+    max-attempts: 5
+    # Exponential backoff for automatic retries: 5s, 10s, 20s, 40s, capped at 60s.
+    initial-backoff-ms: 5000
+    max-backoff-ms: 60000
