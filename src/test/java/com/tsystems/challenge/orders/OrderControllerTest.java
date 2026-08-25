@@ -1,18 +1,31 @@
 package com.tsystems.challenge.orders;
 
+import com.tsystems.challenge.orders.service.pricing.PriceQuote;
+import com.tsystems.challenge.orders.service.pricing.PricingClient;
+import com.tsystems.challenge.orders.service.pricing.PricingTemporarilyUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** No Pricing API is running here, so these exercise the "provider unreachable" path over the JSON API. */
+/**
+ * PricingClient is mocked here so these tests are deterministic regardless of whether the real
+ * Pricing API container happens to be running (it responds inconsistently by design, since it is
+ * the whole point of CR-002) - see OrderServiceTest for the unit-level coverage of the actual
+ * retry/backoff/classification logic against scripted provider behavior.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 class OrderControllerTest {
@@ -20,8 +33,14 @@ class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockitoBean
+    private PricingClient pricingClient;
+
     @Test
     void creatingAnOrderReturns201WithAStableIdEvenWhenPricingIsPending() throws Exception {
+        when(pricingClient.fetchPrice(any(), any(), any()))
+                .thenThrow(new PricingTemporarilyUnavailableException("provider unreachable"));
+
         String body = """
                 {"customerId":"customer-42","productId":"SKU-1001","quantity":2,"country":"DE","currency":"EUR"}
                 """;
@@ -46,6 +65,10 @@ class OrderControllerTest {
 
     @Test
     void retryPricingEndpointReturnsTheUpdatedOrder() throws Exception {
+        when(pricingClient.fetchPrice(any(), any(), any()))
+                .thenThrow(new PricingTemporarilyUnavailableException("provider unreachable"))
+                .thenReturn(new PriceQuote("quote-1", "SKU-1002", "DE", new BigDecimal("9.99"), "EUR"));
+
         String body = """
                 {"customerId":"customer-42","productId":"SKU-1002","quantity":1,"country":"DE","currency":"EUR"}
                 """;
@@ -57,6 +80,7 @@ class OrderControllerTest {
 
         mockMvc.perform(post("/api/orders/{id}/retry-pricing", id))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andExpect(jsonPath("$.pricingAttempts").value(2));
     }
 

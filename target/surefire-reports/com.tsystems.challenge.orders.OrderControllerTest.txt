@@ -1,4 +1,16 @@
 -------------------------------------------------------------------------------
 Test set: com.tsystems.challenge.orders.OrderControllerTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.686 s -- in com.tsystems.challenge.orders.OrderControllerTest
+Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 11.24 s <<< FAILURE! -- in com.tsystems.challenge.orders.OrderControllerTest
+com.tsystems.challenge.orders.OrderControllerTest.creatingAnOrderReturns201WithAStableIdEvenWhenPricingIsPending -- Time elapsed: 3.712 s <<< FAILURE!
+java.lang.AssertionError: JSON path "$.status" expected:<PENDING_PRICING> but was:<CONFIRMED>
+	at org.springframework.test.util.AssertionErrors.fail(AssertionErrors.java:61)
+	at org.springframework.test.util.AssertionErrors.assertEquals(AssertionErrors.java:128)
+	at org.springframework.test.util.JsonPathExpectationsHelper.assertValue(JsonPathExpectationsHelper.java:172)
+	at org.springframework.test.web.servlet.result.JsonPathResultMatchers.lambda$value$2(JsonPathResultMatchers.java:112)
+	at org.springframework.test.web.servlet.MockMvc$1.andExpect(MockMvc.java:214)
+	at com.tsystems.challenge.orders.OrderControllerTest.creatingAnOrderReturns201WithAStableIdEvenWhenPricingIsPending(OrderControllerTest.java:35)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+

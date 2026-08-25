@@ -1,14 +1,19 @@
 package com.tsystems.challenge.orders;
 
+import com.tsystems.challenge.orders.service.pricing.PricingClient;
+import com.tsystems.challenge.orders.service.pricing.PricingTemporarilyUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -17,9 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
- * These tests run against the real (auto-configured) Pricing API client, without a
- * running provider. That is intentional: it exercises the same "provider unreachable"
- * path a store would hit during an outage, without any mocking magic hidden in the test.
+ * PricingClient is mocked here so these tests are deterministic regardless of whether the real
+ * Pricing API container happens to be running (it responds inconsistently by design, since it is
+ * the whole point of CR-002).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -27,6 +32,9 @@ class OrderWebControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private PricingClient pricingClient;
 
     @Test
     void rendersTheOrderDashboard() throws Exception {
@@ -39,6 +47,9 @@ class OrderWebControllerTest {
 
     @Test
     void createsAnOrderFromTheHtmlFormAndGetsAStableIdEvenWhenPricingIsUnavailable() throws Exception {
+        when(pricingClient.fetchPrice(any(), any(), any()))
+                .thenThrow(new PricingTemporarilyUnavailableException("provider unreachable"));
+
         String location = mockMvc.perform(post("/ui/orders")
                         .param("customerId", "customer-web")
                         .param("productId", "SKU-1001")
@@ -53,7 +64,7 @@ class OrderWebControllerTest {
 
         String orderId = extractOrderId(location);
 
-        // No Pricing API is running for this test, so the order is accepted (stable id) but
+        // Pricing fails for every attempt in this test, so the order is accepted (stable id) but
         // pricing is pending - the dashboard must say so explicitly, not just via color.
         mockMvc.perform(get("/").param("created", orderId))
                 .andExpect(status().isOk())
@@ -80,6 +91,9 @@ class OrderWebControllerTest {
 
     @Test
     void retryActionRedirectsBackToTheDashboard() throws Exception {
+        when(pricingClient.fetchPrice(any(), any(), any()))
+                .thenThrow(new PricingTemporarilyUnavailableException("provider unreachable"));
+
         String location = mockMvc.perform(post("/ui/orders")
                         .param("customerId", "customer-retry")
                         .param("productId", "SKU-1002")
