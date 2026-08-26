@@ -8,11 +8,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * Periodically retries pricing for orders stuck in PENDING_PRICING because of a
- * temporary Pricing API failure, so a store never has to resubmit an order to get
+ * temporary Pricing API failure, so a store never has to resubmit an order to
+ * get
  * it priced (CR-002, item 1).
  * <p>
- * A fixed-delay scheduler is intentionally simple for the scope of this exercise;
- * see DECISIONS.md for what a production system would use instead (a durable job
+ * A fixed-delay scheduler is intentionally simple for the scope of this
+ * exercise;
+ * see DECISIONS.md for what a production system would use instead (a durable
+ * job
  * queue instead of an in-JVM timer).
  */
 @Component
